@@ -5,6 +5,7 @@ const session = require('express-session');
 const passport = require('passport');
 const cors = require('cors');
 const path = require('path');
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Load Passport config
  require('./config/passport');
