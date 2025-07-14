@@ -5,6 +5,7 @@ const session = require('express-session');
 const passport = require('passport');
 const cors = require('cors');
 const path = require('path');
+const gmailRoutes = require('./routes/gmail');
 //process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Load Passport config
@@ -40,6 +41,7 @@ app.get('/login', (req, res)=>{
 
 //Route integration 
 app.use('/auth', authRoutes);
+app.use('/gmail', gmailRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
