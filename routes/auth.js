@@ -15,7 +15,7 @@ router.get(
   '/google/callback',
   passport.authenticate('google', {
     failureRedirect: '/login',
-    successRedirect: '/dashboard',
+    successRedirect: 'https://emaildeclutterai-frontend.vercel.app/',
     session: true
   }),
   (err, req, res, next) => {

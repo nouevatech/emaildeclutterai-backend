@@ -34,6 +34,10 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.get('/login', (req, res)=>{
+  res.send('go andlogin')
+})
+
 //Route integration 
 app.use('/auth', authRoutes);
 
