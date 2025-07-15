@@ -12,7 +12,7 @@ function getGmailClient(accessToken) {
   return google.gmail({ version: 'v1', auth });
 }
 
-// 📥 Fetch Email Metadata
+//  Fetch Email Metadata
 exports.fetchEmailMetadata = async (req, res) => {
   try {
     const gmail = getGmailClient(req.user.accessToken);
