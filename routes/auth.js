@@ -18,7 +18,7 @@ router.get(
   passport.authenticate("google", {
     failureRedirect: "/login",
     // successRedirect: "https://emaildeclutterai-frontend.vercel.app/connect",
-    successRedirect: "http://localhost:5000/connect",
+    successRedirect: "http://localhost:5126/connect",
     session: true,
   }),
   (err, req, res, next) => {
