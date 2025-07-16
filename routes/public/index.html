@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EmailDeclutterAI Route Tester</title>
+</head>
+<body>
+  <h1>EmailDeclutterAI Frontend Test</h1>
+
+  <button onclick="window.location.href='https://emaildeclutterai-backend.onrender.com/auth/google'">
+    🔐 Sign in with Google
+  </button>
+
+  <br><br>
+
+  <button onclick="fetchMessages()">📩 Fetch Gmail Messages</button>
+  <br><br>
+
+  <button onclick="logout()">🚪 Logout</button>
+
+  <pre id="output" style="background: #f3f3f3; padding: 1em;"></pre>
+
+  <script>
+    async function fetchMessages() {
+      const output = document.getElementById('output');
+      output.textContent = '⏳ Fetching Gmail messages...';
+
+      try {
+        const response = await fetch('https://emaildeclutterai-backend.onrender.com/gmail/messages', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          const err = await response.text();
+          throw new Error(`Error ${response.status}: ${err}`);
+        }
+
+        const data = await response.json();
+        output.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        output.textContent = '❌ ' + error.message;
+      }
+    }
+
+    async function logout() {
+      const output = document.getElementById('output');
+      try {
+        await fetch('https://emaildeclutterai-backend.onrender.com/auth/logout', {
+          credentials: 'include'
+        });
+        output.textContent = '✅ Logged out.';
+      } catch (error) {
+        output.textContent = '❌ Logout failed: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>

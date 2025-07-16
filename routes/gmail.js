@@ -10,6 +10,6 @@ router.post("/summarize", controller.bulkSummarize);
 router.post("/prioritize", controller.prioritizeEmails);
 router.post("/delete", controller.bulkDelete);
 router.post("/unsubscribe", controller.bulkUnsubscribe);
-router.post("/categorize", controller.categorizeEmails);
+//router.post("/categorize", controller.categorizeEmails);
 
 module.exports = router;
