@@ -13,6 +13,7 @@ router.get(
 );
 
 // Step 2: Handle callback from Google
+/*
 router.get(
   "/google/callback",
   passport.authenticate("google", {
@@ -26,7 +27,21 @@ router.get(
     console.error("OAuth callback error:", err); // Log deeper error if needed
     next(err);
   }
+);*/
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: "https://emaildeclutterai-frontend.vercel.app",
+    session: true,
+  }),
+  (req, res) => {
+    console.log("✅ ACCESS TOKEN:", req.user.accessToken); // 👈 LOG HERE
+    res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
+  }
 );
+
+
 
 // Step 3: Logout
 router.get("/logout", (req, res) => {
