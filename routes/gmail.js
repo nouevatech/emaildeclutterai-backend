@@ -1,30 +1,15 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { isAuthenticated } = require('../middleware/authMiddleware');
-const {
-  fetchEmailMetadata,
-  bulkSummarize,
-  bulkDelete,
-  bulkUnsubscribe,
-  prioritizeEmails
-} = require('../controllers/gmailController');
+const { isAuthenticated } = require("../middleware/authMiddleware");
+const controller = require("../controllers/gmailController");
 
-// Middleware: protect routes
 router.use(isAuthenticated);
 
-// Fetch email subjects and headers
-router.get('/list', fetchEmailMetadata);
-
-// Prioritize emails by importance (Lean AI)
-router.post('/prioritize', prioritizeEmails);
-
-//  Bulk summarize selected emails
-router.post('/summarize', bulkSummarize);
-
-//  Bulk delete selected email IDs
-router.post('/delete', bulkDelete);
-
-//  Bulk unsubscribe from senders
-router.post('/unsubscribe', bulkUnsubscribe);
+router.get("/list", controller.fetchEmailMetadata);
+router.post("/summarize", controller.bulkSummarize);
+router.post("/prioritize", controller.prioritizeEmails);
+router.post("/delete", controller.bulkDelete);
+router.post("/unsubscribe", controller.bulkUnsubscribe);
+router.post("/categorize", controller.categorizeEmails);
 
 module.exports = router;
