@@ -22,6 +22,7 @@ router.get(
     session: true,
   }),
   (err, req, res, next) => {
+    console.log("ACCESS TOKEN:", req.user.accessToken); 
     console.error("OAuth callback error:", err); // Log deeper error if needed
     next(err);
   }
