@@ -1,4 +1,3 @@
-// index.js
 require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
@@ -19,6 +18,20 @@ const app = express();
 app.get("/warm", (req, res) => {
   console.log("Warm route hit");
   res.send("warmed");
+});
+
+app.get("/test-ai", async (req, res) => {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: "Hello world" }],
+    });
+
+    res.send(completion.choices[0].message.content);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("OpenAI error");
+  }
 });
 
 // Middleware
