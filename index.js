@@ -59,6 +59,10 @@ console.log("CLIENT ID:", process.env.GOOGLE_CLIENT_ID);
 console.log("SECRET:", process.env.GOOGLE_CLIENT_SECRET);
 console.log("CALLBACK:", process.env.GOOGLE_CALLBACK_URL);
 
+app.get("/", (req, res) => {
+  res.send("EmailDeclutterAI backend is live.");
+});
+
 app.use((err, req, res, next) => {
   console.error(" Server Error:", err.stack);
   res
