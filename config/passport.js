@@ -1,6 +1,6 @@
-
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+
 passport.use(
   new GoogleStrategy(
     {
@@ -23,8 +23,6 @@ passport.use(
         accessToken,
         refreshToken,
       };
-      console.log("GOOGLE PROFILE:", profile);
-      console.log("ACCESS TOKEN:", accessToken);
       return done(null, user);
     }
   )
@@ -32,4 +30,3 @@ passport.use(
 
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
-
