@@ -16,19 +16,12 @@ function getGmailClient(accessToken) {
 //  Fetch Email Metadata with Unread, Category, Newsletter, and CC detection
 exports.fetchEmailMetadata = async (req, res) => {
   try {
-    const accessToken = req.headers.authorization?.split(" ")[1];
-    if (!accessToken) {
-      return res.status(401).json({ error: "Access token missing." });
-    }
-
-    const gmail = getGmailClient(accessToken);
-
+    const gmail = getGmailClient(req.user.accessToken);
     const response = await gmail.users.messages.list({
-      userId: "me",
+      userId: 'me',
       maxResults: 10,
-      labelIds: ["INBOX"],
+      labelIds: ['INBOX'], // focus on inbox
     });
-
 
     const messages = response.data.messages || [];
 

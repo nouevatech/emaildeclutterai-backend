@@ -36,7 +36,7 @@ router.get(
     session: true,
   }),
   (req, res) => {
-    console.log("✅ ACCESS TOKEN:", req.user.accessToken); // 👈 LOG HERE
+    console.log("✅ ACCESS TOKEN:", req.user.accessToken); 
     res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
   }
 );
