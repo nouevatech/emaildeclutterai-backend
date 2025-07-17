@@ -8,11 +8,11 @@ router.get(
   "/google",
   passport.authenticate("google", {
     scope: [
-      "profile", // to get user name & photo
-      "email", // to get user email
-      "https://www.googleapis.com/auth/gmail.metadata", // to fetch subjects/senders
-      "https://www.googleapis.com/auth/gmail.modify", // to delete or label emails
-      "https://www.googleapis.com/auth/gmail.labels", // to create/apply labels
+      "profile", // Get user name & photo
+      "email", // Get user email
+      "https://www.googleapis.com/auth/gmail.metadata", // Access subjects/senders
+      "https://www.googleapis.com/auth/gmail.modify", // Modify (delete/label)
+      "https://www.googleapis.com/auth/gmail.labels", // Manage labels
     ],
     accessType: "offline",
     prompt: "consent",
@@ -20,56 +20,59 @@ router.get(
 );
 
 // Step 2: Handle callback from Google
-/*
 router.get(
   "/google/callback",
   passport.authenticate("google", {
     failureRedirect: "/login",
-    successRedirect: "https://emaildeclutterai-frontend.vercel.app/connect",
-    // successRedirect: "http://localhost:5126/connect",
-    session: true,
-  }),
-  (err, req, res, next) => {
-    console.log("ACCESS TOKEN:", req.user.accessToken); 
-    console.error("OAuth callback error:", err); // Log deeper error if needed
-    next(err);
-  }
-);*/
-
-router.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: "https://emaildeclutterai-frontend.vercel.app",
     session: true,
   }),
   (req, res) => {
-    console.log("✅ ACCESS TOKEN:", req.user.accessToken); 
+    // Extract user info safely
+    const name =
+      req.user.displayName ||
+      req.user.profile?.displayName ||
+      req.user._json?.name ||
+      "";
+    const email =
+      req.user.email ||
+      req.user.profile?.emails?.[0]?.value ||
+      req.user._json?.email ||
+      "";
+
+    // Save to session
+    req.session.user = {
+      accessToken: req.user.accessToken,
+      refreshToken: req.user.refreshToken,
+      name,
+      email,
+    };
+
+    console.log("Stored session user:", req.session.user);
+
+    // Redirect to frontend
     res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
   }
 );
 
-
-
 // Step 3: Logout
-router.get("/logout", (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return res.status(500).send("Logout failed.");
-    }
+router.get("/logout", (req, res, next) => {
+  req.logout(function (err) {
+    if (err) return next(err);
     req.session.destroy(() => {
       res.redirect("/");
     });
   });
 });
 
-// Auth status
+// Step 4: Auth Status (check if user is authenticated)
 router.get("/status", (req, res) => {
-  if (req.isAuthenticated()) {
+  const user = req.user || req.session.user;
+  if (user) {
     res.json({
       authenticated: true,
       user: {
-        name: req.user.displayName,
-        email: req.user.email,
+        name: user.name || "",
+        email: user.email || "",
       },
     });
   } else {

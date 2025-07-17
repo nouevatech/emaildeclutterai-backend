@@ -47,6 +47,16 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+
+// Assign session user to req.user
+app.use((req, res, next) => {
+  if (!req.user && req.session.user) {
+    req.user = req.session.user;
+  }
+  next();
+});
+
+
 // Routes
 app.use("/auth", authRoutes);
 app.use("/gmail", gmailRoutes);
