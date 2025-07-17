@@ -7,6 +7,13 @@ const router = express.Router();
 router.get(
   "/google",
   passport.authenticate("google", {
+    scope: [
+      "profile", // to get user name & photo
+      "email", // to get user email
+      "https://www.googleapis.com/auth/gmail.metadata", // to fetch subjects/senders
+      "https://www.googleapis.com/auth/gmail.modify", // to delete or label emails
+      "https://www.googleapis.com/auth/gmail.labels", // to create/apply labels
+    ],
     accessType: "offline",
     prompt: "consent",
   })
