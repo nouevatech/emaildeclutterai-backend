@@ -65,12 +65,33 @@ app.get("/", (req, res) => {
   res.send("EmailDeclutterAI backend is live.");
 });
 
+
+// 🔁 Transitional page to set cookie before redirecting to frontend
+app.get("/connect", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head><title>Connecting...</title></head>
+      <body>
+        <p style="font-family:sans-serif;">Redirecting to EmailDeclutterAI...</p>
+        <script>
+          // Redirect to the frontend dashboard
+          window.location.href = "https://emaildeclutterai-frontend.vercel.app/dashboard";
+        </script>
+      </body>
+    </html>
+  `);
+});
+
+
 app.use((err, req, res, next) => {
   console.error("Server Error:", err.stack);
   res
     .status(500)
     .json({ message: "Internal Server Error", error: err.message });
 });
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {

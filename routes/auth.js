@@ -48,9 +48,12 @@ router.get(
     };
 
     console.log("Stored session user:", req.session.user);
+    
+    // Redirect to backend page to set cookie, then to frontend
+    res.redirect("/connect");
 
     // Redirect to frontend
-    res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
+    //res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
   }
 );
 
