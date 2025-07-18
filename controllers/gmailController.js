@@ -71,6 +71,8 @@ exports.fetchEmailMetadata = async (req, res) => {
         };
       })
     );
+console.log("Session:", req.session);
+  console.log("User:", req.user);
 
     res.json({ emails: fullMetadata });
   } catch (err) {

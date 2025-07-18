@@ -48,22 +48,19 @@ app.use(express.urlencoded({ extended: true }));
 // Session
 app.use(
   session({
+    name: "connect.sid",
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
     cookie: {
-      secure: true, // ensure HTTPS on Render
+      secure: true,       
       httpOnly: true,
-      sameSite: "None", // for cross-origin requests (frontend on Vercel)
+      sameSite: "None",     
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     },
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGO_URI,
-      collectionName: "sessions",
-    }),
   })
 );
-
 
 // Passport
 app.use(passport.initialize());
