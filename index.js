@@ -20,14 +20,13 @@ app.get("/warm", (req, res) => {
 });
 
 //connect Db
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error(" MongoDB connection error:", err));
 
+
+mongoose.connect(process.env.MONGO_URI, {
+  //serverSelectionTimeoutMS: 10000, 
+})
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 
 
