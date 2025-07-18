@@ -4,6 +4,8 @@ const session = require("express-session");
 const passport = require("passport");
 const cors = require("cors");
 const path = require("path");
+const MongoStore = require("connect-mongo");
+const mongoose = require("mongoose");
 
 require("./config/passport");
 const authRoutes = require("./routes/auth");
@@ -16,6 +18,18 @@ app.get("/warm", (req, res) => {
   console.log("Warm route hit");
   res.send("warmed");
 });
+
+//connect Db
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error(" MongoDB connection error:", err));
+
+
+
 
 // Middleware
 app.use(
@@ -30,6 +44,8 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
+
 // Session
 app.use(
   session({
@@ -37,15 +53,25 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      sameSite: "none",
-      secure: true,
+      secure: true, // ensure HTTPS on Render
+      httpOnly: true,
+      sameSite: "None", // for cross-origin requests (frontend on Vercel)
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     },
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: "sessions",
+    }),
   })
 );
+
 
 // Passport
 app.use(passport.initialize());
 app.use(passport.session());
+
+
+
 
 
 // Assign session user to req.user
@@ -66,7 +92,7 @@ app.get("/", (req, res) => {
 });
 
 
-// 🔁 Transitional page to set cookie before redirecting to frontend
+// Transitional page to set cookie before redirecting to frontend
 app.get("/connect", (req, res) => {
   res.send(`
     <!DOCTYPE html>

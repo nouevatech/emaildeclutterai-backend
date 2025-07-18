@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.10.0",
+    "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "googleapis": "^152.0.0",
+    "mongoose": "^8.16.4",
     "openai": "^5.9.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"
