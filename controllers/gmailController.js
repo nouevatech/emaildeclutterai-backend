@@ -21,8 +21,14 @@ function getAccessToken(req) {
 // Fetch Email Metadata
 exports.fetchEmailMetadata = async (req, res) => {
   const accessToken = getAccessToken(req);
-  if (!accessToken) return res.status(401).json({ message: "Unauthorized: No token provided" });
+  console.log("accessToken:", accessToken);
+  console.log("req.user:", req.user);
+  console.log("req.session:", req.session);
 
+  if (!accessToken) {
+    return res.status(401).json({ message: "Unauthorized: No token provided" });
+  }
+  
   try {
     const gmail = getGmailClient(accessToken);
     const response = await gmail.users.messages.list({
