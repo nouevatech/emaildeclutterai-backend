@@ -1,6 +1,7 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
+// Google OAuth 2.0 strategy
 passport.use(
   new GoogleStrategy(
     {
@@ -26,10 +27,19 @@ passport.use(
         accessToken,
         refreshToken,
       };
+
+      // Save tokens/user in session manually via callback route
       return done(null, user);
     }
   )
 );
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
+// Store only user.id in the session
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+// Only return { id } in deserialization for session validation
+passport.deserializeUser((id, done) => {
+  done(null, { id });
+});
