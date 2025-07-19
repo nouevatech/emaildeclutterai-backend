@@ -12,6 +12,235 @@ function getGmailClient(accessToken) {
   return google.gmail({ version: "v1", auth });
 }
 
+
+// Helper to extract access token from session or query
+function getAccessToken(req) {
+  return req.user?.accessToken || req.session?.user?.accessToken || req.query.token;
+}
+
+// Fetch Email Metadata
+exports.fetchEmailMetadata = async (req, res) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) return res.status(401).json({ message: "Unauthorized: No token provided" });
+
+  try {
+    const gmail = getGmailClient(accessToken);
+    const response = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: 10,
+      labelIds: ["INBOX"],
+    });
+
+    const messages = response.data.messages || [];
+
+    const fullMetadata = await Promise.all(
+      messages.map(async (msg) => {
+        const detail = await gmail.users.messages.get({
+          userId: "me",
+          id: msg.id,
+          format: "metadata",
+          metadataHeaders: ["Subject", "From", "Date", "Cc", "List-Unsubscribe"],
+        });
+
+        const headers = detail.data.payload.headers.reduce((acc, h) => {
+          acc[h.name.toLowerCase()] = h.value;
+          return acc;
+        }, {});
+
+        const labelIds = detail.data.labelIds || [];
+
+        const isUnread = labelIds.includes("UNREAD");
+        const categories = {
+          primary: labelIds.includes("CATEGORY_PERSONAL"),
+          social: labelIds.includes("CATEGORY_SOCIAL"),
+          promotions: labelIds.includes("CATEGORY_PROMOTIONS"),
+          updates: labelIds.includes("CATEGORY_UPDATES"),
+          forums: labelIds.includes("CATEGORY_FORUMS"),
+        };
+
+        const isNewsletter =
+          headers["list-unsubscribe"] !== undefined ||
+          /noreply@|newsletter@|updates@|digest/i.test(headers.from || "") ||
+          /daily|weekly|monthly|update|digest/i.test(headers.subject || "");
+
+        const hasCc = !!headers["cc"];
+
+        return {
+          id: msg.id,
+          subject: headers.subject || "",
+          from: headers.from || "",
+          date: headers.date || "",
+          cc: headers.cc || null,
+          hasCc,
+          isUnread,
+          isNewsletter,
+          categories,
+        };
+      })
+    );
+
+    res.json({ emails: fullMetadata });
+  } catch (err) {
+    console.error("Error fetching Gmail metadata:", err);
+    res.status(500).json({ error: "Failed to fetch emails" });
+  }
+};
+
+// Prioritize Emails
+exports.prioritizeEmails = async (req, res) => {
+  try {
+    const emails = req.body.emails;
+
+    const input = emails
+      .map((email, i) => `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`)
+      .join("\n\n");
+
+    const prompt = `
+You are an assistant that helps users sort their inbox.
+Based only on email subject and sender, prioritize emails from most important to least important.
+Label each as: [HIGH], [MEDIUM], or [LOW].
+
+Emails:
+${input}
+
+Return JSON like:
+[
+  { "subject": "Team Update", "from": "manager@company.com", "priority": "HIGH" },
+  ...
+]`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const jsonText = completion.choices[0].message.content.trim();
+    const parsed = JSON.parse(jsonText);
+    res.json({ prioritized: parsed });
+  } catch (err) {
+    console.error("Error prioritizing emails:", err);
+    res.status(500).json({ error: "AI prioritization failed" });
+  }
+};
+
+// Summarize Emails
+exports.bulkSummarize = async (req, res) => {
+  try {
+    const emails = req.body.emails;
+
+    const input = emails
+      .map((email, i) => `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`)
+      .join("\n\n");
+
+    const prompt = `
+Summarize the following emails in plain English using only subject and sender.
+Avoid guessing, be concise.
+
+Emails:
+${input}
+
+Return summary like:
+[
+  "Update from HR about policy changes",
+  "Meeting reminder from project team",
+  ...
+]`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const summaries = completion.choices[0].message.content.trim();
+    res.json({ summaries: JSON.parse(summaries) });
+  } catch (err) {
+    console.error("Error generating summaries:", err);
+    res.status(500).json({ error: "Failed to summarize emails" });
+  }
+};
+
+// Bulk Delete
+exports.bulkDelete = async (req, res) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) return res.status(401).json({ message: "Unauthorized: No token provided" });
+
+  try {
+    const gmail = getGmailClient(accessToken);
+    const messageIds = req.body.ids;
+
+    await Promise.all(
+      messageIds.map((id) =>
+        gmail.users.messages.delete({
+          userId: "me",
+          id,
+        })
+      )
+    );
+
+    res.json({ message: "Selected emails deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting emails:", err);
+    res.status(500).json({ error: "Failed to delete emails" });
+  }
+};
+
+// Bulk Unsubscribe
+exports.bulkUnsubscribe = async (req, res) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) return res.status(401).json({ message: "Unauthorized: No token provided" });
+
+  try {
+    const gmail = getGmailClient(accessToken);
+    const messageIds = req.body.ids;
+    const links = [];
+
+    for (const id of messageIds) {
+      const msg = await gmail.users.messages.get({
+        userId: "me",
+        id,
+        format: "metadata",
+        metadataHeaders: ["List-Unsubscribe"],
+      });
+
+      const header = msg.data.payload.headers.find(
+        (h) => h.name.toLowerCase() === "list-unsubscribe"
+      );
+
+      if (header) {
+        const match = header.value.match(/<(.+?)>/);
+        if (match && match[1]) {
+          links.push({ id, unsubscribe: match[1] });
+        }
+      }
+    }
+
+    res.json({ links });
+  } catch (err) {
+    console.error("Error extracting unsubscribe links:", err);
+    res.status(500).json({ error: "Failed to extract unsubscribe links" });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 //  Fetch Email Metadata with Unread, Category, Newsletter, and CC detection
 exports.fetchEmailMetadata = async (req, res) => {
   try {
@@ -222,3 +451,4 @@ exports.bulkUnsubscribe = async (req, res) => {
     res.status(500).json({ error: "Failed to extract unsubscribe links" });
   }
 };
+*/
