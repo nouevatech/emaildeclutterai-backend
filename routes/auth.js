@@ -49,11 +49,18 @@ router.get(
 
     console.log("Stored session user:", req.session.user);
 
-    // Redirect to backend page to set cookie, then to frontend
-    res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
-
-    // Redirect to frontend
-    //res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error saving session to store:", err);
+        return res.redirect(
+          "https://emaildeclutterai-frontend.vercel.app/login?error=true&message=session_failed"
+        );
+      }
+      console.log(
+        "Session successfully saved to store. Proceeding with redirect."
+      );
+      res.redirect("https://emaildeclutterai-frontend.vercel.app/connect");
+    });
   }
 );
 
