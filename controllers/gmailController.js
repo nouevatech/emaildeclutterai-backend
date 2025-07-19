@@ -5,30 +5,33 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Initialize Gmail API
+
 function getGmailClient(accessToken) {
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
   return google.gmail({ version: "v1", auth });
 }
-
-
-// Helper to extract access token from session or query
+ 
 function getAccessToken(req) {
-  return req.user?.accessToken || req.session?.user?.accessToken || req.query.token;
+  const token =
+    req.query.token || 
+    req.headers.authorization?.split("Bearer ")[1] || 
+    req.session?.user?.accessToken || 
+    req.user?.accessToken; 
+
+  console.log("Access Token:", token || "❌ No token found");
+  console.log("req.session.user:", req.session?.user || "No session user");
+  console.log("req.user:", req.user || "No passport user");
+  return token;
 }
 
-// Fetch Email Metadata
+
 exports.fetchEmailMetadata = async (req, res) => {
   const accessToken = getAccessToken(req);
-  console.log("accessToken:", accessToken);
-  console.log("req.user:", req.user);
-  console.log("req.session:", req.session);
-
   if (!accessToken) {
     return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
-  
+
   try {
     const gmail = getGmailClient(accessToken);
     const response = await gmail.users.messages.list({
@@ -69,15 +72,13 @@ exports.fetchEmailMetadata = async (req, res) => {
           /noreply@|newsletter@|updates@|digest/i.test(headers.from || "") ||
           /daily|weekly|monthly|update|digest/i.test(headers.subject || "");
 
-        const hasCc = !!headers["cc"];
-
         return {
           id: msg.id,
           subject: headers.subject || "",
           from: headers.from || "",
           date: headers.date || "",
           cc: headers.cc || null,
-          hasCc,
+          hasCc: !!headers.cc,
           isUnread,
           isNewsletter,
           categories,
@@ -87,16 +88,15 @@ exports.fetchEmailMetadata = async (req, res) => {
 
     res.json({ emails: fullMetadata });
   } catch (err) {
-    console.error("Error fetching Gmail metadata:", err);
+    console.error("❌ Error fetching Gmail metadata:", err?.response?.data || err.message);
     res.status(500).json({ error: "Failed to fetch emails" });
   }
 };
 
-// Prioritize Emails
+
 exports.prioritizeEmails = async (req, res) => {
   try {
-    const emails = req.body.emails;
-
+    const emails = req.body.emails || [];
     const input = emails
       .map((email, i) => `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`)
       .join("\n\n");
@@ -124,16 +124,15 @@ Return JSON like:
     const parsed = JSON.parse(jsonText);
     res.json({ prioritized: parsed });
   } catch (err) {
-    console.error("Error prioritizing emails:", err);
+    console.error("❌ Error prioritizing emails:", err?.response?.data || err.message);
     res.status(500).json({ error: "AI prioritization failed" });
   }
 };
 
-// Summarize Emails
+
 exports.bulkSummarize = async (req, res) => {
   try {
-    const emails = req.body.emails;
-
+    const emails = req.body.emails || [];
     const input = emails
       .map((email, i) => `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`)
       .join("\n\n");
@@ -148,8 +147,7 @@ ${input}
 Return summary like:
 [
   "Update from HR about policy changes",
-  "Meeting reminder from project team",
-  ...
+  "Meeting reminder from project team"
 ]`;
 
     const completion = await openai.chat.completions.create({
@@ -157,22 +155,22 @@ Return summary like:
       messages: [{ role: "user", content: prompt }],
     });
 
-    const summaries = completion.choices[0].message.content.trim();
-    res.json({ summaries: JSON.parse(summaries) });
+    const summaries = JSON.parse(completion.choices[0].message.content.trim());
+    res.json({ summaries });
   } catch (err) {
-    console.error("Error generating summaries:", err);
+    console.error("❌ Error generating summaries:", err?.response?.data || err.message);
     res.status(500).json({ error: "Failed to summarize emails" });
   }
 };
 
-// Bulk Delete
+// -------- Bulk Delete --------
 exports.bulkDelete = async (req, res) => {
   const accessToken = getAccessToken(req);
   if (!accessToken) return res.status(401).json({ message: "Unauthorized: No token provided" });
 
   try {
     const gmail = getGmailClient(accessToken);
-    const messageIds = req.body.ids;
+    const messageIds = req.body.ids || [];
 
     await Promise.all(
       messageIds.map((id) =>
@@ -185,19 +183,19 @@ exports.bulkDelete = async (req, res) => {
 
     res.json({ message: "Selected emails deleted successfully." });
   } catch (err) {
-    console.error("Error deleting emails:", err);
+    console.error("❌ Error deleting emails:", err?.response?.data || err.message);
     res.status(500).json({ error: "Failed to delete emails" });
   }
 };
 
-// Bulk Unsubscribe
+// -------- Bulk Unsubscribe --------
 exports.bulkUnsubscribe = async (req, res) => {
   const accessToken = getAccessToken(req);
   if (!accessToken) return res.status(401).json({ message: "Unauthorized: No token provided" });
 
   try {
     const gmail = getGmailClient(accessToken);
-    const messageIds = req.body.ids;
+    const messageIds = req.body.ids || [];
     const links = [];
 
     for (const id of messageIds) {
@@ -222,7 +220,7 @@ exports.bulkUnsubscribe = async (req, res) => {
 
     res.json({ links });
   } catch (err) {
-    console.error("Error extracting unsubscribe links:", err);
+    console.error("❌ Error extracting unsubscribe links:", err?.response?.data || err.message);
     res.status(500).json({ error: "Failed to extract unsubscribe links" });
   }
 };
