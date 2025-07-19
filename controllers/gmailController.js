@@ -1,5 +1,5 @@
-const { google } = require('googleapis');
-const { OpenAI } = require('openai');
+const { google } = require("googleapis");
+const { OpenAI } = require("openai");
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -9,18 +9,17 @@ const openai = new OpenAI({
 function getGmailClient(accessToken) {
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
-  return google.gmail({ version: 'v1', auth });
+  return google.gmail({ version: "v1", auth });
 }
-
 
 //  Fetch Email Metadata with Unread, Category, Newsletter, and CC detection
 exports.fetchEmailMetadata = async (req, res) => {
   try {
     const gmail = getGmailClient(req.user.accessToken);
     const response = await gmail.users.messages.list({
-      userId: 'me',
+      userId: "me",
       maxResults: 10,
-      labelIds: ['INBOX'], // focus on inbox
+      labelIds: ["INBOX"], // focus on inbox
     });
 
     const messages = response.data.messages || [];
@@ -28,10 +27,16 @@ exports.fetchEmailMetadata = async (req, res) => {
     const fullMetadata = await Promise.all(
       messages.map(async (msg) => {
         const detail = await gmail.users.messages.get({
-          userId: 'me',
+          userId: "me",
           id: msg.id,
-          format: 'metadata',
-          metadataHeaders: ['Subject', 'From', 'Date', 'Cc', 'List-Unsubscribe'],
+          format: "metadata",
+          metadataHeaders: [
+            "Subject",
+            "From",
+            "Date",
+            "Cc",
+            "List-Unsubscribe",
+          ],
         });
 
         const headers = detail.data.payload.headers.reduce((acc, h) => {
@@ -41,28 +46,28 @@ exports.fetchEmailMetadata = async (req, res) => {
 
         const labelIds = detail.data.labelIds || [];
 
-        const isUnread = labelIds.includes('UNREAD');
+        const isUnread = labelIds.includes("UNREAD");
         const categories = {
-          primary: labelIds.includes('CATEGORY_PERSONAL'),
-          social: labelIds.includes('CATEGORY_SOCIAL'),
-          promotions: labelIds.includes('CATEGORY_PROMOTIONS'),
-          updates: labelIds.includes('CATEGORY_UPDATES'),
-          forums: labelIds.includes('CATEGORY_FORUMS'),
+          primary: labelIds.includes("CATEGORY_PERSONAL"),
+          social: labelIds.includes("CATEGORY_SOCIAL"),
+          promotions: labelIds.includes("CATEGORY_PROMOTIONS"),
+          updates: labelIds.includes("CATEGORY_UPDATES"),
+          forums: labelIds.includes("CATEGORY_FORUMS"),
         };
 
         // Newsletter detection heuristics
         const isNewsletter =
-          headers['list-unsubscribe'] !== undefined ||
-          /noreply@|newsletter@|updates@|digest/i.test(headers.from || '') ||
-          /daily|weekly|monthly|update|digest/i.test(headers.subject || '');
+          headers["list-unsubscribe"] !== undefined ||
+          /noreply@|newsletter@|updates@|digest/i.test(headers.from || "") ||
+          /daily|weekly|monthly|update|digest/i.test(headers.subject || "");
 
-        const hasCc = !!headers['cc'];
+        const hasCc = !!headers["cc"];
 
         return {
           id: msg.id,
-          subject: headers.subject || '',
-          from: headers.from || '',
-          date: headers.date || '',
+          subject: headers.subject || "",
+          from: headers.from || "",
+          date: headers.date || "",
           cc: headers.cc || null,
           hasCc,
           isUnread,
@@ -71,25 +76,29 @@ exports.fetchEmailMetadata = async (req, res) => {
         };
       })
     );
-console.log("Session:", req.session);
-  console.log("User:", req.user);
+    console.log("Session:", req.session);
+    console.log("User:", req.user);
+    console.log("SessionID:", req.sessionID);
+    console.log("Session content:", req.session);
+    console.log("User in req.user:", req.user);
 
     res.json({ emails: fullMetadata });
   } catch (err) {
-    console.error('Error fetching Gmail metadata:', err);
-    res.status(500).json({ error: 'Failed to fetch emails' });
+    console.error("Error fetching Gmail metadata:", err);
+    res.status(500).json({ error: "Failed to fetch emails" });
   }
 };
-
 
 // Prioritize Emails by Importance (Lean AI)
 exports.prioritizeEmails = async (req, res) => {
   try {
     const emails = req.body.emails;
 
-    const input = emails.map((email, i) => {
-      return `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`;
-    }).join('\n\n');
+    const input = emails
+      .map((email, i) => {
+        return `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`;
+      })
+      .join("\n\n");
 
     const prompt = `
 You are an assistant that helps users sort their inbox.
@@ -107,8 +116,8 @@ Return JSON like:
     `;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
     });
 
     const jsonText = completion.choices[0].message.content.trim();
@@ -116,19 +125,20 @@ Return JSON like:
     const parsed = JSON.parse(jsonText);
     res.json({ prioritized: parsed });
   } catch (err) {
-    console.error('Error prioritizing emails:', err);
-    res.status(500).json({ error: 'AI prioritization failed' });
+    console.error("Error prioritizing emails:", err);
+    res.status(500).json({ error: "AI prioritization failed" });
   }
 };
-
 
 exports.bulkSummarize = async (req, res) => {
   try {
     const emails = req.body.emails; // Array of { subject, from }
 
-    const input = emails.map((email, i) => {
-      return `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`;
-    }).join('\n\n');
+    const input = emails
+      .map((email, i) => {
+        return `${i + 1}. Subject: ${email.subject}\nFrom: ${email.from}`;
+      })
+      .join("\n\n");
 
     const prompt = `
 Summarize the following emails in plain English using only subject and sender.
@@ -146,15 +156,15 @@ Return summary like:
     `;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
     });
 
     const summaries = completion.choices[0].message.content.trim();
     res.json({ summaries: JSON.parse(summaries) });
   } catch (err) {
-    console.error('Error generating summaries:', err);
-    res.status(500).json({ error: 'Failed to summarize emails' });
+    console.error("Error generating summaries:", err);
+    res.status(500).json({ error: "Failed to summarize emails" });
   }
 };
 
@@ -166,16 +176,16 @@ exports.bulkDelete = async (req, res) => {
     await Promise.all(
       messageIds.map((id) =>
         gmail.users.messages.delete({
-          userId: 'me',
+          userId: "me",
           id: id,
         })
       )
     );
 
-    res.json({ message: 'Selected emails deleted successfully.' });
+    res.json({ message: "Selected emails deleted successfully." });
   } catch (err) {
-    console.error('Error deleting emails:', err);
-    res.status(500).json({ error: 'Failed to delete emails' });
+    console.error("Error deleting emails:", err);
+    res.status(500).json({ error: "Failed to delete emails" });
   }
 };
 
@@ -188,14 +198,14 @@ exports.bulkUnsubscribe = async (req, res) => {
 
     for (const id of messageIds) {
       const msg = await gmail.users.messages.get({
-        userId: 'me',
+        userId: "me",
         id,
-        format: 'metadata',
-        metadataHeaders: ['List-Unsubscribe'],
+        format: "metadata",
+        metadataHeaders: ["List-Unsubscribe"],
       });
 
       const header = msg.data.payload.headers.find(
-        (h) => h.name.toLowerCase() === 'list-unsubscribe'
+        (h) => h.name.toLowerCase() === "list-unsubscribe"
       );
 
       if (header) {
@@ -208,8 +218,7 @@ exports.bulkUnsubscribe = async (req, res) => {
 
     res.json({ links });
   } catch (err) {
-    console.error('Error extracting unsubscribe links:', err);
-    res.status(500).json({ error: 'Failed to extract unsubscribe links' });
+    console.error("Error extracting unsubscribe links:", err);
+    res.status(500).json({ error: "Failed to extract unsubscribe links" });
   }
 };
-
