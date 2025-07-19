@@ -21,14 +21,12 @@ app.get("/warm", (req, res) => {
 
 //connect Db
 
-
-mongoose.connect(process.env.MONGO_URI, {
-  //serverSelectionTimeoutMS: 10000, 
-})
+mongoose
+  .connect(process.env.MONGO_URI, {
+    //serverSelectionTimeoutMS: 10000,
+  })
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
-
-
 
 // Middleware
 app.use(
@@ -43,8 +41,6 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-
 // Session
 app.use(
   session({
@@ -52,23 +48,23 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: "sessions",
+      ttl: 1000 * 60 * 60 * 24 * 7,
+    }),
     cookie: {
-      secure: true,       
+      secure: true,
       httpOnly: true,
-      sameSite: "None",     
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      sameSite: "None",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     },
+    rolling: true,
   })
 );
-
 // Passport
 app.use(passport.initialize());
 app.use(passport.session());
-
-
-
-
 
 // Assign session user to req.user
 app.use((req, res, next) => {
@@ -78,7 +74,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // Routes
 app.use("/auth", authRoutes);
 app.use("/gmail", gmailRoutes);
@@ -86,7 +81,6 @@ app.use("/gmail", gmailRoutes);
 app.get("/", (req, res) => {
   res.send("EmailDeclutterAI backend is live.");
 });
-
 
 // Transitional page to set cookie before redirecting to frontend
 app.get("/connect", (req, res) => {
@@ -105,15 +99,12 @@ app.get("/connect", (req, res) => {
   `);
 });
 
-
 app.use((err, req, res, next) => {
   console.error("Server Error:", err.stack);
   res
     .status(500)
     .json({ message: "Internal Server Error", error: err.message });
 });
-
-
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
